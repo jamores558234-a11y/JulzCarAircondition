@@ -43,6 +43,13 @@ class DatabaseConnection:
     def execute_query(self, query, params=None):
         """Execute a query and return results"""
         try:
+            if self.connection is None or not self.connection.is_connected():
+                self.connect()
+
+            if self.connection is None:
+                print("Failed to establish database connection")
+                return [] if query.strip().upper().startswith('SELECT') else 0
+
             cursor = self.connection.cursor(dictionary=True)
             if params:
                 cursor.execute(query, params)
@@ -56,7 +63,7 @@ class DatabaseConnection:
                 return cursor.rowcount
         except Error as e:
             print(f"Query Error: {e}")
-            return None
+            return [] if query.strip().upper().startswith('SELECT') else 0
         finally:
             cursor.close()
 

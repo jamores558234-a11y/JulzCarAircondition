@@ -1,10 +1,12 @@
-"""Payment management window"""
+"""Payment management window - FIXED"""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QMessageBox, QDoubleSpinBox,
-                             QComboBox, QLineEdit)
+                             QComboBox, QLineEdit, QFrame, QHeaderView)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from controllers.payment_controller import PaymentController
 from controllers.billing_controller import BillingController
+from database.connection import DatabaseConnection
 from utils.helpers import format_currency
 
 
@@ -13,109 +15,245 @@ class PaymentWindow(QWidget):
         super().__init__()
         self.payment_controller = PaymentController()
         self.billing_controller = BillingController()
+        self.db = DatabaseConnection()
         self.init_ui()
-        self.load_payments()
+        try:
+            self.load_payments()
+        except Exception as e:
+            print(f"Error loading payments: {e}")
 
     def init_ui(self):
         """Initialize payment UI"""
         layout = QVBoxLayout()
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(20)
+        self.setStyleSheet("background-color: #f8fafc;")
 
-        title = QLabel("Payment Management")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(title)
+        # Title section
+        title_frame = QFrame()
+        title_frame.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border-bottom: 2px solid #e2e8f0;
+                padding: 15px 0px;
+            }
+        """)
+        title_layout = QVBoxLayout(title_frame)
+        title_layout.setContentsMargins(15, 10, 15, 10)
 
-        # Form
-        form_layout = QHBoxLayout()
+        title = QLabel("💳 Payment Management")
+        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title_layout.addWidget(title)
+
+        layout.addWidget(title_frame)
+
+        # Form section
+        form_frame = QFrame()
+        form_frame.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        form_layout = QHBoxLayout(form_frame)
 
         form_layout.addWidget(QLabel("Billing:"))
         self.billing_combo = QComboBox()
-        self.billing_combo.setMaximumWidth(150)
-        self.load_billing_combo()
+        self.billing_combo.setStyleSheet(self.get_input_style())
+        self.billing_combo.setMinimumHeight(38)
+        try:
+            self.load_billing_combo()
+        except:
+            pass
         form_layout.addWidget(self.billing_combo)
 
         form_layout.addWidget(QLabel("Amount:"))
         self.amount_spin = QDoubleSpinBox()
         self.amount_spin.setMinimum(0)
+        self.amount_spin.setStyleSheet(self.get_input_style())
+        self.amount_spin.setMinimumHeight(38)
         form_layout.addWidget(self.amount_spin)
 
         form_layout.addWidget(QLabel("Method:"))
         self.method_combo = QComboBox()
         self.method_combo.addItems(['Cash', 'Check', 'Credit Card', 'Bank Transfer'])
+        self.method_combo.setStyleSheet(self.get_input_style())
+        self.method_combo.setMinimumHeight(38)
         form_layout.addWidget(self.method_combo)
 
         form_layout.addWidget(QLabel("Notes:"))
         self.notes_input = QLineEdit()
+        self.notes_input.setStyleSheet(self.get_input_style())
+        self.notes_input.setMinimumHeight(38)
         form_layout.addWidget(self.notes_input)
 
         form_layout.addStretch()
-        layout.addLayout(form_layout)
+        layout.addWidget(form_frame)
 
-        # Buttons
+        # Buttons section
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
 
-        record_btn = QPushButton("Record Payment")
-        record_btn.setStyleSheet("background-color: #28a745; color: white; padding: 8px; border-radius: 4px;")
+        record_btn = QPushButton("💾 Record Payment")
+        record_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
+        record_btn.setMinimumHeight(40)
         record_btn.clicked.connect(self.record_payment)
         button_layout.addWidget(record_btn)
 
-        refresh_btn = QPushButton("Refresh")
+        refresh_btn = QPushButton("🔄 Refresh")
+        refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
+        refresh_btn.setMinimumHeight(40)
         refresh_btn.clicked.connect(self.load_payments)
         button_layout.addWidget(refresh_btn)
 
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
-        # Table
+        # Table section
+        table_frame = QFrame()
+        table_frame.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+            }
+        """)
+        table_layout = QVBoxLayout(table_frame)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(['ID', 'Billing ID', 'Amount Paid', 'Method', 'Date', 'Notes'])
-        layout.addWidget(self.table)
+        self.table.setStyleSheet(self.get_table_style())
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table_layout.addWidget(self.table)
 
+        layout.addWidget(table_frame)
         self.setLayout(layout)
 
     def load_billing_combo(self):
         """Load pending billings"""
-        billings = self.billing_controller.get_all_billing()
-        for billing in billings:
-            if billing['status'] != 'Paid':
-                self.billing_combo.addItem(
-                    f"Billing #{billing['billing_id']} - {format_currency(billing['total_amount'])}",
-                    billing['billing_id']
-                )
+        try:
+            billings = self.billing_controller.get_all_billing()
+            if billings:
+                for billing in billings:
+                    if billing.get('status') != 'Paid':
+                        self.billing_combo.addItem(
+                            f"Billing #{billing.get('billing_id', '')} - {format_currency(billing.get('total_amount', 0))}",
+                            billing.get('billing_id')
+                        )
+        except Exception as e:
+            print(f"Error loading billing: {e}")
 
     def load_payments(self):
         """Load payments"""
-        query = "SELECT * FROM payments ORDER BY payment_date DESC"
-        from database.connection import DatabaseConnection
-        db = DatabaseConnection()
-        payments = db.execute_query(query)
+        try:
+            query = "SELECT * FROM payments ORDER BY payment_date DESC LIMIT 100"
+            payments = self.db.execute_query(query)
 
-        self.table.setRowCount(len(payments))
+            if payments is None:
+                payments = []
 
-        for row, payment in enumerate(payments):
-            self.table.setItem(row, 0, QTableWidgetItem(str(payment['payment_id'])))
-            self.table.setItem(row, 1, QTableWidgetItem(str(payment['billing_id'])))
-            self.table.setItem(row, 2, QTableWidgetItem(format_currency(payment['amount_paid'])))
-            self.table.setItem(row, 3, QTableWidgetItem(payment['payment_method']))
-            self.table.setItem(row, 4, QTableWidgetItem(str(payment['payment_date'])))
-            self.table.setItem(row, 5, QTableWidgetItem(payment['notes'] or ''))
+            self.table.setRowCount(len(payments))
+
+            for row, payment in enumerate(payments):
+                try:
+                    self.table.setItem(row, 0, QTableWidgetItem(str(payment.get('payment_id', ''))))
+                    self.table.setItem(row, 1, QTableWidgetItem(str(payment.get('billing_id', ''))))
+                    self.table.setItem(row, 2, QTableWidgetItem(format_currency(payment.get('amount_paid', 0))))
+                    self.table.setItem(row, 3, QTableWidgetItem(payment.get('payment_method', '')))
+                    self.table.setItem(row, 4, QTableWidgetItem(str(payment.get('payment_date', ''))))
+                    self.table.setItem(row, 5, QTableWidgetItem(payment.get('notes', '') or ''))
+                except Exception as e:
+                    print(f"Error loading payment row {row}: {e}")
+        except Exception as e:
+            print(f"Error loading payments: {e}")
 
     def record_payment(self):
         """Record payment"""
-        billing_id = self.billing_combo.currentData()
-        amount = self.amount_spin.value()
-        method = self.method_combo.currentText()
-        notes = self.notes_input.text().strip()
+        try:
+            billing_id = self.billing_combo.currentData()
+            if not billing_id:
+                QMessageBox.warning(self, "Error", "Please select a billing")
+                return
 
-        if amount <= 0:
-            QMessageBox.warning(self, "Error", "Please enter valid amount")
-            return
+            amount = self.amount_spin.value()
+            method = self.method_combo.currentText()
+            notes = self.notes_input.text().strip()
 
-        if self.payment_controller.record_payment(billing_id, amount, method, notes):
-            QMessageBox.information(self, "Success", "Payment recorded successfully")
-            self.amount_spin.setValue(0)
-            self.notes_input.clear()
-            self.load_payments()
-            self.load_billing_combo()
-        else:
-            QMessageBox.warning(self, "Error", "Failed to record payment")
+            if amount <= 0:
+                QMessageBox.warning(self, "Error", "Please enter valid amount")
+                return
+
+            if self.payment_controller.record_payment(billing_id, amount, method, notes):
+                QMessageBox.information(self, "Success", "Payment recorded successfully")
+                self.amount_spin.setValue(0)
+                self.notes_input.clear()
+                self.load_payments()
+                self.load_billing_combo()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to record payment")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred: {str(e)}")
+
+    @staticmethod
+    def get_input_style():
+        return """
+            QLineEdit, QComboBox, QDoubleSpinBox {
+                padding: 10px 12px;
+                border: 2px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 12px;
+                background-color: #ffffff;
+                color: #1f2937;
+            }
+            QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {
+                border: 2px solid #3b82f6;
+            }
+        """
+
+    @staticmethod
+    def get_button_style(bg_color, hover_color):
+        return f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-weight: 600;
+                font-size: 12px;
+                padding: 8px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+        """
+
+    @staticmethod
+    def get_table_style():
+        return """
+            QTableWidget {
+                border: none;
+                background-color: #ffffff;
+                gridline-color: #e5e7eb;
+            }
+            QTableWidget::item {
+                padding: 10px;
+                color: #1f2937;
+            }
+            QHeaderView::section {
+                background-color: #f3f4f6;
+                color: #374151;
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid #e5e7eb;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QTableWidget::item:selected {
+                background-color: #dbeafe;
+                color: #1f2937;
+            }
+        """

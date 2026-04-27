@@ -15,8 +15,11 @@ class DatabaseConnection:
         return cls._instance
 
     def __init__(self):
-        self.connection = None
-        self.connect()
+        # Singleton: only initialize once
+        if not hasattr(self, '_initialized'):
+            self.connection = None
+            self.connect()
+            self._initialized = True
 
     def connect(self):
         """Establish connection to MySQL database"""

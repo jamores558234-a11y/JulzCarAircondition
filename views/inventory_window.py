@@ -3,13 +3,15 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLa
                              QLineEdit, QTableWidget, QTableWidgetItem, QMessageBox,
                              QSpinBox, QDoubleSpinBox, QComboBox, QGroupBox, QFrame,
                              QHeaderView)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from controllers.inventory_controller import InventoryController
 from utils.validators import validate_not_empty, validate_numeric
 
 
 class InventoryWindow(QWidget):
+    data_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.inventory_controller = InventoryController()
@@ -22,8 +24,8 @@ class InventoryWindow(QWidget):
     def init_ui(self):
         """Initialize inventory UI"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -39,7 +41,7 @@ class InventoryWindow(QWidget):
         title_layout.setContentsMargins(15, 10, 15, 10)
 
         title = QLabel("📦 Inventory Management")
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -109,7 +111,7 @@ class InventoryWindow(QWidget):
         form_layout.addWidget(QLabel("Item:"))
         self.stockin_item_combo = QComboBox()
         self.stockin_item_combo.setStyleSheet(self.get_input_style())
-        self.stockin_item_combo.setMinimumHeight(36)
+        self.stockin_item_combo.setMinimumHeight(42)
         try:
             self.load_items_combo(self.stockin_item_combo)
         except:
@@ -120,20 +122,20 @@ class InventoryWindow(QWidget):
         self.stockin_qty_spin = QSpinBox()
         self.stockin_qty_spin.setMinimum(1)
         self.stockin_qty_spin.setStyleSheet(self.get_input_style())
-        self.stockin_qty_spin.setMinimumHeight(36)
+        self.stockin_qty_spin.setMinimumHeight(42)
         form_layout.addWidget(self.stockin_qty_spin)
 
         form_layout.addWidget(QLabel("Supplier:"))
         self.supplier_input = QLineEdit()
         self.supplier_input.setStyleSheet(self.get_input_style())
-        self.supplier_input.setMinimumHeight(36)
+        self.supplier_input.setMinimumHeight(42)
         form_layout.addWidget(self.supplier_input)
 
         form_layout.addWidget(QLabel("Cost:"))
         self.stockin_cost_spin = QDoubleSpinBox()
         self.stockin_cost_spin.setMinimum(0)
         self.stockin_cost_spin.setStyleSheet(self.get_input_style())
-        self.stockin_cost_spin.setMinimumHeight(36)
+        self.stockin_cost_spin.setMinimumHeight(42)
         form_layout.addWidget(self.stockin_cost_spin)
 
         layout.addLayout(form_layout)
@@ -141,7 +143,7 @@ class InventoryWindow(QWidget):
         # Button
         stockin_btn = QPushButton("➕ Stock-In")
         stockin_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-        stockin_btn.setMinimumHeight(40)
+        stockin_btn.setMinimumHeight(44)
         stockin_btn.clicked.connect(self.stock_in)
         layout.addWidget(stockin_btn)
 
@@ -174,7 +176,7 @@ class InventoryWindow(QWidget):
         form_layout.addWidget(QLabel("Item:"))
         self.stockout_item_combo = QComboBox()
         self.stockout_item_combo.setStyleSheet(self.get_input_style())
-        self.stockout_item_combo.setMinimumHeight(36)
+        self.stockout_item_combo.setMinimumHeight(42)
         try:
             self.load_items_combo(self.stockout_item_combo)
         except:
@@ -185,13 +187,13 @@ class InventoryWindow(QWidget):
         self.stockout_qty_spin = QSpinBox()
         self.stockout_qty_spin.setMinimum(1)
         self.stockout_qty_spin.setStyleSheet(self.get_input_style())
-        self.stockout_qty_spin.setMinimumHeight(36)
+        self.stockout_qty_spin.setMinimumHeight(42)
         form_layout.addWidget(self.stockout_qty_spin)
 
         form_layout.addWidget(QLabel("Reason:"))
         self.reason_input = QLineEdit()
         self.reason_input.setStyleSheet(self.get_input_style())
-        self.reason_input.setMinimumHeight(36)
+        self.reason_input.setMinimumHeight(42)
         form_layout.addWidget(self.reason_input)
 
         form_layout.addStretch()
@@ -200,7 +202,7 @@ class InventoryWindow(QWidget):
         # Button
         stockout_btn = QPushButton("➖ Stock-Out")
         stockout_btn.setStyleSheet(self.get_button_style("#ef4444", "#dc2626"))
-        stockout_btn.setMinimumHeight(40)
+        stockout_btn.setMinimumHeight(44)
         stockout_btn.clicked.connect(self.stock_out)
         layout.addWidget(stockout_btn)
 
@@ -271,6 +273,7 @@ class InventoryWindow(QWidget):
                 self.supplier_input.clear()
                 self.stockin_qty_spin.setValue(1)
                 self.stockin_cost_spin.setValue(0)
+                self.data_changed.emit()
                 self.load_inventory()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add stock")
@@ -299,6 +302,7 @@ class InventoryWindow(QWidget):
                 self.reason_input.clear()
                 self.stockout_qty_spin.setValue(1)
                 self.load_inventory()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", message)
         except Exception as e:
@@ -311,12 +315,19 @@ class InventoryWindow(QWidget):
                 padding: 8px 10px;
                 border: 2px solid #d1d5db;
                 border-radius: 4px;
-                font-size: 11px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
             QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
                 border: 2px solid #3b82f6;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
         """
 
@@ -329,8 +340,8 @@ class InventoryWindow(QWidget):
                 border: none;
                 border-radius: 4px;
                 font-weight: 600;
-                font-size: 11px;
-                padding: 6px 12px;
+                font-size: 13px;
+                padding: 10px 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
@@ -346,17 +357,17 @@ class InventoryWindow(QWidget):
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

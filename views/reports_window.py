@@ -21,8 +21,8 @@ class ReportsWindow(QWidget):
     def init_ui(self):
         """Initialize reports UI"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -38,7 +38,7 @@ class ReportsWindow(QWidget):
         title_layout.setContentsMargins(15, 10, 15, 10)
 
         title = QLabel("📈 Reports")
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -58,7 +58,7 @@ class ReportsWindow(QWidget):
         report_layout.addWidget(QLabel("Select Report:"))
         self.report_combo = QComboBox()
         self.report_combo.setStyleSheet(self.get_input_style())
-        self.report_combo.setMinimumHeight(38)
+        self.report_combo.setMinimumHeight(42)
         self.report_combo.addItems([
             'Service History',
             'Inventory Status',
@@ -245,12 +245,19 @@ class ReportsWindow(QWidget):
                 padding: 10px 12px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
             QComboBox:focus {
                 border: 2px solid #3b82f6;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
         """
 
@@ -263,17 +270,17 @@ class ReportsWindow(QWidget):
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

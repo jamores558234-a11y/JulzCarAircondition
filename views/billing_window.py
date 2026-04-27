@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QTableWidget, QTableWidgetItem, QMessageBox, QDoubleSpinBox,
                              QComboBox, QFrame, QHeaderView)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from controllers.billing_controller import BillingController
 from controllers.service_controller import ServiceController
@@ -11,6 +11,8 @@ from utils.helpers import format_currency
 
 
 class BillingWindow(QWidget):
+    data_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.billing_controller = BillingController()
@@ -25,8 +27,8 @@ class BillingWindow(QWidget):
     def init_ui(self):
         """Initialize billing UI"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -42,7 +44,7 @@ class BillingWindow(QWidget):
         title_layout.setContentsMargins(15, 10, 15, 10)
 
         title = QLabel("💰 Billing Management")
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -62,7 +64,7 @@ class BillingWindow(QWidget):
         form_layout.addWidget(QLabel("Service:"))
         self.service_combo = QComboBox()
         self.service_combo.setStyleSheet(self.get_input_style())
-        self.service_combo.setMinimumHeight(38)
+        self.service_combo.setMinimumHeight(42)
         try:
             self.load_services_combo()
         except:
@@ -74,7 +76,7 @@ class BillingWindow(QWidget):
         self.labor_fee_spin.setMinimum(0)
         self.labor_fee_spin.setValue(500)
         self.labor_fee_spin.setStyleSheet(self.get_input_style())
-        self.labor_fee_spin.setMinimumHeight(38)
+        self.labor_fee_spin.setMinimumHeight(42)
         form_layout.addWidget(self.labor_fee_spin)
 
         form_layout.addStretch()
@@ -86,19 +88,19 @@ class BillingWindow(QWidget):
 
         create_billing_btn = QPushButton("➕ Create Billing")
         create_billing_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-        create_billing_btn.setMinimumHeight(40)
+        create_billing_btn.setMinimumHeight(44)
         create_billing_btn.clicked.connect(self.create_billing)
         button_layout.addWidget(create_billing_btn)
 
         view_details_btn = QPushButton("👁️ View Details")
         view_details_btn.setStyleSheet(self.get_button_style("#3b82f6", "#2563eb"))
-        view_details_btn.setMinimumHeight(40)
+        view_details_btn.setMinimumHeight(44)
         view_details_btn.clicked.connect(self.view_billing_details)
         button_layout.addWidget(view_details_btn)
 
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
-        refresh_btn.setMinimumHeight(40)
+        refresh_btn.setMinimumHeight(44)
         refresh_btn.clicked.connect(self.load_billing)
         button_layout.addWidget(refresh_btn)
 
@@ -184,6 +186,7 @@ class BillingWindow(QWidget):
             if self.billing_controller.create_billing(service_id, parts_cost, labor_fee):
                 QMessageBox.information(self, "Success", "Billing created successfully")
                 self.load_billing()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Failed to create billing or billing already exists")
         except Exception as e:
@@ -225,12 +228,19 @@ Created: {billing.get('created_at', 'N/A')}
                 padding: 10px 12px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
             QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {
                 border: 2px solid #3b82f6;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
         """
 
@@ -243,8 +253,8 @@ Created: {billing.get('created_at', 'N/A')}
                 border: none;
                 border-radius: 6px;
                 font-weight: 600;
-                font-size: 12px;
-                padding: 8px 16px;
+                font-size: 13px;
+                padding: 10px 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
@@ -260,17 +270,17 @@ Created: {billing.get('created_at', 'N/A')}
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

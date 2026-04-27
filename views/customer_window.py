@@ -2,13 +2,15 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QLineEdit, QTableWidget, QTableWidgetItem, QMessageBox,
                              QFrame, QHeaderView)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
 from controllers.customer_controller import CustomerController
 from utils.validators import validate_not_empty, validate_email, validate_phone
 
 
 class CustomerWindow(QWidget):
+    data_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.controller = CustomerController()
@@ -18,8 +20,8 @@ class CustomerWindow(QWidget):
     def init_ui(self):
         """Initialize customer UI with formal design"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -36,7 +38,7 @@ class CustomerWindow(QWidget):
         title_layout.setContentsMargins(15, 10, 15, 10)
 
         title = QLabel("👥 Customer Management")
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -55,7 +57,7 @@ class CustomerWindow(QWidget):
 
         # Form title
         form_title = QLabel("Customer Details")
-        form_title.setStyleSheet("color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 10px;")
+        form_title.setStyleSheet("color: #374151; font-size: 15px; font-weight: 600; margin-bottom: 10px;")
         form_layout.addWidget(form_title)
 
         # Input fields in grid
@@ -68,7 +70,7 @@ class CustomerWindow(QWidget):
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Enter customer name")
         self.name_input.setStyleSheet(self.get_input_style())
-        self.name_input.setMinimumHeight(38)
+        self.name_input.setMinimumHeight(42)
         input_layout.addWidget(self.name_input)
 
         # Row 2: Contact and Email
@@ -80,7 +82,7 @@ class CustomerWindow(QWidget):
         self.contact_input = QLineEdit()
         self.contact_input.setPlaceholderText("Enter contact number")
         self.contact_input.setStyleSheet(self.get_input_style())
-        self.contact_input.setMinimumHeight(38)
+        self.contact_input.setMinimumHeight(42)
         row2_layout.addWidget(self.contact_input)
 
         email_label = QLabel("Email Address")
@@ -89,7 +91,7 @@ class CustomerWindow(QWidget):
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("Enter email address")
         self.email_input.setStyleSheet(self.get_input_style())
-        self.email_input.setMinimumHeight(38)
+        self.email_input.setMinimumHeight(42)
         row2_layout.addWidget(self.email_input)
 
         input_layout.addLayout(row2_layout)
@@ -101,7 +103,7 @@ class CustomerWindow(QWidget):
         self.address_input = QLineEdit()
         self.address_input.setPlaceholderText("Enter customer address")
         self.address_input.setStyleSheet(self.get_input_style())
-        self.address_input.setMinimumHeight(38)
+        self.address_input.setMinimumHeight(42)
         input_layout.addWidget(self.address_input)
 
         form_layout.addLayout(input_layout)
@@ -113,25 +115,25 @@ class CustomerWindow(QWidget):
 
         add_btn = QPushButton("➕ Add Customer")
         add_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-        add_btn.setMinimumHeight(40)
+        add_btn.setMinimumHeight(44)
         add_btn.clicked.connect(self.add_customer)
         button_layout.addWidget(add_btn)
 
         update_btn = QPushButton("✏️ Update")
         update_btn.setStyleSheet(self.get_button_style("#3b82f6", "#2563eb"))
-        update_btn.setMinimumHeight(40)
+        update_btn.setMinimumHeight(44)
         update_btn.clicked.connect(self.update_customer)
         button_layout.addWidget(update_btn)
 
         delete_btn = QPushButton("🗑️ Delete")
         delete_btn.setStyleSheet(self.get_button_style("#ef4444", "#dc2626"))
-        delete_btn.setMinimumHeight(40)
+        delete_btn.setMinimumHeight(44)
         delete_btn.clicked.connect(self.delete_customer)
         button_layout.addWidget(delete_btn)
 
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
-        refresh_btn.setMinimumHeight(40)
+        refresh_btn.setMinimumHeight(44)
         refresh_btn.clicked.connect(self.load_customers)
         button_layout.addWidget(refresh_btn)
 
@@ -200,6 +202,7 @@ class CustomerWindow(QWidget):
             QMessageBox.information(self, "Success", "Customer added successfully")
             self.clear_inputs()
             self.load_customers()
+            self.data_changed.emit()
         else:
             QMessageBox.warning(self, "Error", "Failed to add customer")
 
@@ -246,8 +249,8 @@ class CustomerWindow(QWidget):
         customer_id = int(self.table.item(row, 0).text())
 
         reply = QMessageBox.question(
-            self, 
-            "Confirm Delete", 
+            self,
+            "Confirm Delete",
             "Are you sure you want to delete this customer?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -257,6 +260,7 @@ class CustomerWindow(QWidget):
                 QMessageBox.information(self, "Success", "Customer deleted successfully")
                 self.clear_inputs()
                 self.load_customers()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Failed to delete customer")
 
@@ -274,7 +278,7 @@ class CustomerWindow(QWidget):
                 padding: 10px 12px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
@@ -293,8 +297,8 @@ class CustomerWindow(QWidget):
                 border: none;
                 border-radius: 6px;
                 font-weight: 600;
-                font-size: 12px;
-                padding: 8px 16px;
+                font-size: 13px;
+                padding: 10px 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
@@ -310,17 +314,17 @@ class CustomerWindow(QWidget):
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

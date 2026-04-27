@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QLineEdit, QTableWidget, QTableWidgetItem, QMessageBox,
                              QComboBox, QFrame, QHeaderView)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from controllers.vehicle_controller import VehicleController
 from controllers.customer_controller import CustomerController
@@ -10,6 +10,8 @@ from utils.validators import validate_not_empty
 
 
 class VehicleWindow(QWidget):
+    data_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.vehicle_controller = VehicleController()
@@ -23,8 +25,8 @@ class VehicleWindow(QWidget):
     def init_ui(self):
         """Initialize vehicle UI"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -40,7 +42,7 @@ class VehicleWindow(QWidget):
         title_layout.setContentsMargins(15, 10, 15, 10)
 
         title = QLabel("🚗 Vehicle Management")
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -58,7 +60,7 @@ class VehicleWindow(QWidget):
         form_layout = QVBoxLayout(form_frame)
 
         form_title = QLabel("Vehicle Details")
-        form_title.setStyleSheet("color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 10px;")
+        form_title.setStyleSheet("color: #374151; font-size: 15px; font-weight: 600; margin-bottom: 10px;")
         form_layout.addWidget(form_title)
 
         # Customer selection
@@ -68,7 +70,7 @@ class VehicleWindow(QWidget):
         cust_layout.addWidget(cust_label)
         self.customer_combo = QComboBox()
         self.customer_combo.setStyleSheet(self.get_input_style())
-        self.customer_combo.setMinimumHeight(38)
+        self.customer_combo.setMinimumHeight(42)
         try:
             self.load_customers_combo()
         except:
@@ -86,7 +88,7 @@ class VehicleWindow(QWidget):
         self.plate_input = QLineEdit()
         self.plate_input.setPlaceholderText("ABC-1234")
         self.plate_input.setStyleSheet(self.get_input_style())
-        self.plate_input.setMinimumHeight(38)
+        self.plate_input.setMinimumHeight(42)
         row1_layout.addWidget(self.plate_input)
 
         model_label = QLabel("Model")
@@ -95,7 +97,7 @@ class VehicleWindow(QWidget):
         self.model_input = QLineEdit()
         self.model_input.setPlaceholderText("Toyota Camry")
         self.model_input.setStyleSheet(self.get_input_style())
-        self.model_input.setMinimumHeight(38)
+        self.model_input.setMinimumHeight(42)
         row1_layout.addWidget(self.model_input)
 
         type_label = QLabel("Type")
@@ -104,7 +106,7 @@ class VehicleWindow(QWidget):
         self.type_input = QLineEdit()
         self.type_input.setPlaceholderText("Sedan")
         self.type_input.setStyleSheet(self.get_input_style())
-        self.type_input.setMinimumHeight(38)
+        self.type_input.setMinimumHeight(42)
         row1_layout.addWidget(self.type_input)
 
         form_layout.addLayout(row1_layout)
@@ -118,7 +120,7 @@ class VehicleWindow(QWidget):
         self.year_input = QLineEdit()
         self.year_input.setPlaceholderText("2020")
         self.year_input.setStyleSheet(self.get_input_style())
-        self.year_input.setMinimumHeight(38)
+        self.year_input.setMinimumHeight(42)
         row2_layout.addWidget(self.year_input)
 
         color_label = QLabel("Color")
@@ -127,7 +129,7 @@ class VehicleWindow(QWidget):
         self.color_input = QLineEdit()
         self.color_input.setPlaceholderText("Silver")
         self.color_input.setStyleSheet(self.get_input_style())
-        self.color_input.setMinimumHeight(38)
+        self.color_input.setMinimumHeight(42)
         row2_layout.addWidget(self.color_input)
 
         row2_layout.addStretch()
@@ -141,25 +143,25 @@ class VehicleWindow(QWidget):
 
         add_btn = QPushButton("➕ Add Vehicle")
         add_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-        add_btn.setMinimumHeight(40)
+        add_btn.setMinimumHeight(44)
         add_btn.clicked.connect(self.add_vehicle)
         button_layout.addWidget(add_btn)
 
         update_btn = QPushButton("✏️ Update")
         update_btn.setStyleSheet(self.get_button_style("#3b82f6", "#2563eb"))
-        update_btn.setMinimumHeight(40)
+        update_btn.setMinimumHeight(44)
         update_btn.clicked.connect(self.update_vehicle)
         button_layout.addWidget(update_btn)
 
         delete_btn = QPushButton("🗑️ Delete")
         delete_btn.setStyleSheet(self.get_button_style("#ef4444", "#dc2626"))
-        delete_btn.setMinimumHeight(40)
+        delete_btn.setMinimumHeight(44)
         delete_btn.clicked.connect(self.delete_vehicle)
         button_layout.addWidget(delete_btn)
 
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
-        refresh_btn.setMinimumHeight(40)
+        refresh_btn.setMinimumHeight(44)
         refresh_btn.clicked.connect(self.load_vehicles)
         button_layout.addWidget(refresh_btn)
 
@@ -331,6 +333,7 @@ class VehicleWindow(QWidget):
                     QMessageBox.information(self, "Success", "Vehicle deleted successfully")
                     self.clear_inputs()
                     self.load_vehicles()
+                    self.data_changed.emit()
                 else:
                     QMessageBox.warning(self, "Error", "Failed to delete vehicle")
         except Exception as e:
@@ -351,13 +354,20 @@ class VehicleWindow(QWidget):
                 padding: 10px 12px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
             QLineEdit:focus, QComboBox:focus {
                 border: 2px solid #3b82f6;
                 background-color: #ffffff;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
         """
 
@@ -370,8 +380,8 @@ class VehicleWindow(QWidget):
                 border: none;
                 border-radius: 6px;
                 font-weight: 600;
-                font-size: 12px;
-                padding: 8px 16px;
+                font-size: 13px;
+                padding: 10px 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
@@ -387,17 +397,17 @@ class VehicleWindow(QWidget):
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

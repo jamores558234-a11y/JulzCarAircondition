@@ -2,7 +2,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QLineEdit, QTableWidget, QTableWidgetItem, QMessageBox,
                              QComboBox, QTextEdit, QFrame, QHeaderView)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from controllers.service_controller import ServiceController
 from controllers.vehicle_controller import VehicleController
@@ -10,6 +10,8 @@ from database.connection import DatabaseConnection
 
 
 class ServiceWindow(QWidget):
+    data_changed = pyqtSignal()
+
     def __init__(self, user=None):
         super().__init__()
         self.user = user or {}
@@ -27,8 +29,8 @@ class ServiceWindow(QWidget):
     def init_ui(self):
         """Initialize service UI"""
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(25)
         self.setStyleSheet("background-color: #f8fafc;")
 
         # Title section
@@ -45,7 +47,7 @@ class ServiceWindow(QWidget):
 
         title_text = "🔧 My Services" if self.user_role == 'Mechanic' else "🔧 Service Management"
         title = QLabel(title_text)
-        title.setStyleSheet("color: #1f2937; font-size: 22px; font-weight: 700;")
+        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
         title_layout.addWidget(title)
 
         layout.addWidget(title_frame)
@@ -64,7 +66,7 @@ class ServiceWindow(QWidget):
             form_layout = QVBoxLayout(form_frame)
 
             form_title = QLabel("Service Details")
-            form_title.setStyleSheet("color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 10px;")
+            form_title.setStyleSheet("color: #374151; font-size: 15px; font-weight: 600; margin-bottom: 10px;")
             form_layout.addWidget(form_title)
 
             # Form Row 1
@@ -73,7 +75,7 @@ class ServiceWindow(QWidget):
             form_row1.addWidget(QLabel("Vehicle:"))
             self.vehicle_combo = QComboBox()
             self.vehicle_combo.setStyleSheet(self.get_input_style())
-            self.vehicle_combo.setMinimumHeight(38)
+            self.vehicle_combo.setMinimumHeight(42)
             try:
                 self.load_vehicles_combo()
             except:
@@ -83,7 +85,7 @@ class ServiceWindow(QWidget):
             form_row1.addWidget(QLabel("Mechanic:"))
             self.mechanic_combo = QComboBox()
             self.mechanic_combo.setStyleSheet(self.get_input_style())
-            self.mechanic_combo.setMinimumHeight(38)
+            self.mechanic_combo.setMinimumHeight(42)
             try:
                 self.load_mechanics_combo()
             except:
@@ -94,7 +96,7 @@ class ServiceWindow(QWidget):
             self.status_combo = QComboBox()
             self.status_combo.addItems(['Pending', 'Ongoing', 'Completed'])
             self.status_combo.setStyleSheet(self.get_input_style())
-            self.status_combo.setMinimumHeight(38)
+            self.status_combo.setMinimumHeight(42)
             form_row1.addWidget(self.status_combo)
 
             form_row1.addStretch()
@@ -118,19 +120,19 @@ class ServiceWindow(QWidget):
         if self.user_role != 'Mechanic':
             create_btn = QPushButton("➕ Create Service")
             create_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-            create_btn.setMinimumHeight(40)
+            create_btn.setMinimumHeight(44)
             create_btn.clicked.connect(self.create_service)
             button_layout.addWidget(create_btn)
 
         update_status_btn = QPushButton("✏️ Update Status")
         update_status_btn.setStyleSheet(self.get_button_style("#3b82f6", "#2563eb"))
-        update_status_btn.setMinimumHeight(40)
+        update_status_btn.setMinimumHeight(44)
         update_status_btn.clicked.connect(self.update_status)
         button_layout.addWidget(update_status_btn)
 
         refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
-        refresh_btn.setMinimumHeight(40)
+        refresh_btn.setMinimumHeight(44)
         refresh_btn.clicked.connect(self.load_services)
         button_layout.addWidget(refresh_btn)
 
@@ -248,6 +250,7 @@ class ServiceWindow(QWidget):
                 QMessageBox.information(self, "Success", "Service created successfully")
                 self.issue_input.clear()
                 self.load_services()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Failed to create service")
         except Exception as e:
@@ -292,6 +295,7 @@ class ServiceWindow(QWidget):
             if self.service_controller.update_service_status(service_id, new_status):
                 QMessageBox.information(self, "Success", "Service status updated successfully")
                 self.load_services()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Cannot update status. Check workflow order.")
         except Exception as e:
@@ -304,13 +308,20 @@ class ServiceWindow(QWidget):
                 padding: 10px 12px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
                 background-color: #ffffff;
                 color: #1f2937;
             }
             QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
                 border: 2px solid #3b82f6;
                 background-color: #ffffff;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
         """
 
@@ -323,8 +334,8 @@ class ServiceWindow(QWidget):
                 border: none;
                 border-radius: 6px;
                 font-weight: 600;
-                font-size: 12px;
-                padding: 8px 16px;
+                font-size: 13px;
+                padding: 10px 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
@@ -340,17 +351,17 @@ class ServiceWindow(QWidget):
                 gridline-color: #e5e7eb;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 14px;
                 color: #1f2937;
             }
             QHeaderView::section {
                 background-color: #f3f4f6;
                 color: #374151;
-                padding: 10px;
+                padding: 14px;
                 border: none;
                 border-bottom: 2px solid #e5e7eb;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QTableWidget::item:selected {
                 background-color: #dbeafe;

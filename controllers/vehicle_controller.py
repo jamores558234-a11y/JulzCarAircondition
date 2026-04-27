@@ -1,4 +1,4 @@
-"""Vehicle controller"""
+
 from database.connection import DatabaseConnection
 
 

@@ -17,7 +17,8 @@ class LoginWindow(QWidget):
     def init_ui(self):
         """Initialize login UI with formal design"""
         self.setWindowTitle("Julz Car AC Service - Login")
-        self.setGeometry(100, 100, 500, 600)
+        self.setMinimumSize(560, 680)
+        self.resize(600, 720)
         self.setStyleSheet("""
             QWidget {
                 background-color: #f5f7fa;
@@ -26,7 +27,7 @@ class LoginWindow(QWidget):
                 padding: 12px 15px;
                 border: 2px solid #d1d5db;
                 border-radius: 6px;
-                font-size: 13px;
+                font-size: 14px;
                 background-color: #ffffff;
                 color: #1f2937;
                 font-weight: 500;
@@ -34,6 +35,13 @@ class LoginWindow(QWidget):
             QLineEdit:focus, QComboBox:focus {
                 border: 2px solid #2563eb;
                 background-color: #ffffff;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #dbeafe;
+                selection-color: #1e40af;
+                border: 1px solid #d1d5db;
             }
             QLabel {
                 color: #1f2937;

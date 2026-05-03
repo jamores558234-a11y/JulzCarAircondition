@@ -13,10 +13,12 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Customers Table
+-- Customers Table (split name into 3 fields)
 CREATE TABLE customers (
     customer_id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    middle_name VARCHAR(50),
+    last_name VARCHAR(50) NOT NULL,
     contact VARCHAR(20) NOT NULL,
     email VARCHAR(100),
     address VARCHAR(255),
@@ -135,10 +137,10 @@ INSERT INTO users (username, password, role, full_name, contact) VALUES
 ('staff1', 'staff123', 'Staff', 'John Staff', '0912345679'),
 ('mech1', 'mech123', 'Mechanic', 'Mike Mechanic', '0912345680');
 
-INSERT INTO customers (name, contact, email, address) VALUES
-('Juan dela Cruz', '0912345678', 'juan@example.com', '123 Main St'),
-('Maria Santos', '0912345679', 'maria@example.com', '456 Oak Ave'),
-('Jose Garcia', '0912345680', 'jose@example.com', '789 Pine Rd');
+INSERT INTO customers (first_name, middle_name, last_name, contact, email, address) VALUES
+('Juan', 'Reyes', 'dela Cruz', '0912345678', 'juan@example.com', '123 Main St'),
+('Maria', 'Lopez', 'Santos', '0912345679', 'maria@example.com', '456 Oak Ave'),
+('Jose', 'Miguel', 'Garcia', '0912345680', 'jose@example.com', '789 Pine Rd');
 
 INSERT INTO vehicles (customer_id, plate_number, model, type, year, color) VALUES
 (1, 'ABC-1234', 'Toyota Camry', 'Sedan', 2020, 'Silver'),

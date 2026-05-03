@@ -1,7 +1,8 @@
 """Login window - Enhanced formal design"""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-                             QPushButton, QComboBox, QMessageBox, QFrame)
-from PyQt6.QtGui import QFont, QIcon
+                             QPushButton, QComboBox, QMessageBox, QFrame, QSizePolicy,
+                             QGraphicsDropShadowEffect)
+from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt, pyqtSignal
 from controllers.auth_controller import AuthController
 
@@ -18,156 +19,222 @@ class LoginWindow(QWidget):
         """Initialize login UI with formal design"""
         self.setWindowTitle("Julz Car AC Service - Login")
         self.setMinimumSize(560, 680)
-        self.resize(600, 720)
+        self.resize(1280, 800)
+
         self.setStyleSheet("""
-            QWidget {
-                background-color: #f5f7fa;
+            QWidget#outerWidget {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #0f172a,
+                    stop:0.5 #1e3a5f,
+                    stop:1 #0f172a
+                );
             }
-            QLineEdit, QComboBox {
-                padding: 12px 15px;
-                border: 2px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
+        """)
+        self.setObjectName("outerWidget")
+
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        # ── Top brand strip ────────────────────────────────────────────────
+        top_strip = QWidget()
+        top_strip.setFixedHeight(68)
+        top_strip.setStyleSheet("background: transparent;")
+        ts_layout = QHBoxLayout(top_strip)
+        ts_layout.setContentsMargins(48, 0, 48, 0)
+
+        brand = QLabel("⚙  Julz Car AC Service")
+        brand.setStyleSheet("color:#ffffff;font-size:15px;font-weight:700;letter-spacing:0.5px;font-family:'Segoe UI',sans-serif;")
+        ts_layout.addWidget(brand, alignment=Qt.AlignmentFlag.AlignVCenter)
+        ts_layout.addStretch()
+
+        copy_lbl = QLabel("© 2025  All Rights Reserved")
+        copy_lbl.setStyleSheet("color:rgba(255,255,255,0.35);font-size:11px;font-family:'Segoe UI',sans-serif;")
+        ts_layout.addWidget(copy_lbl, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        root_layout.addWidget(top_strip)
+
+        # ── Center row: tagline LEFT + card RIGHT ──────────────────────────
+        center = QHBoxLayout()
+        center.setContentsMargins(64, 0, 64, 0)
+        center.setSpacing(64)
+
+        # Left tagline panel
+        left = QWidget()
+        left.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        left.setStyleSheet("background:transparent;")
+        left_layout = QVBoxLayout(left)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addStretch()
+
+        h1 = QLabel("Management\nSystem")
+        h1.setStyleSheet("color:#ffffff;font-size:48px;font-weight:800;font-family:'Segoe UI',sans-serif;line-height:1.1;")
+        left_layout.addWidget(h1)
+
+        sub = QLabel("Your all-in-one platform for car\nair-conditioning service management.")
+        sub.setStyleSheet("color:rgba(255,255,255,0.5);font-size:14px;font-family:'Segoe UI',sans-serif;margin-top:16px;")
+        left_layout.addWidget(sub)
+
+        accent_bar = QFrame()
+        accent_bar.setFixedSize(52, 5)
+        accent_bar.setStyleSheet("background:#3b82f6;border-radius:3px;margin-top:22px;")
+        left_layout.addWidget(accent_bar)
+
+        left_layout.addStretch()
+        center.addWidget(left)
+
+        # ── Login Card ─────────────────────────────────────────────────────
+        card = QFrame()
+        card.setObjectName("loginCard")
+        card.setFixedWidth(430)
+        card.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        card.setStyleSheet("""
+            QFrame#loginCard {
                 background-color: #ffffff;
-                color: #1f2937;
-                font-weight: 500;
-            }
-            QLineEdit:focus, QComboBox:focus {
-                border: 2px solid #2563eb;
-                background-color: #ffffff;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #ffffff;
-                color: #1f2937;
-                selection-background-color: #dbeafe;
-                selection-color: #1e40af;
-                border: 1px solid #d1d5db;
+                border-radius: 18px;
             }
             QLabel {
                 color: #1f2937;
-                font-weight: 600;
-                font-size: 12px;
+                font-family: 'Segoe UI', sans-serif;
             }
-            QPushButton {
-                background-color: #2563eb;
-                color: white;
-                padding: 12px;
-                border: none;
+            QLineEdit, QComboBox {
+                padding: 11px 14px;
+                border: 1.5px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 13px;
+                background-color: #f9fafb;
+                color: #111827;
+                font-family: 'Segoe UI', sans-serif;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border: 1.5px solid #2563eb;
+                background-color: #ffffff;
+            }
+            QComboBox::drop-down { border: none; width: 28px; }
+            QComboBox QAbstractItemView {
+                background-color: #ffffff;
+                color: #1f2937;
+                selection-background-color: #eff6ff;
+                selection-color: #1d4ed8;
+                border: 1px solid #d1d5db;
                 border-radius: 6px;
-                font-weight: 600;
+                padding: 4px;
+                font-family: 'Segoe UI', sans-serif;
+            }
+            QPushButton#signInBtn {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #2563eb, stop:1 #1d4ed8);
+                color: white;
+                padding: 13px;
+                border: none;
+                border-radius: 9px;
+                font-weight: 700;
                 font-size: 14px;
+                letter-spacing: 0.5px;
+                font-family: 'Segoe UI', sans-serif;
             }
-            QPushButton:hover {
-                background-color: #1d4ed8;
+            QPushButton#signInBtn:hover {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                    stop:0 #1d4ed8, stop:1 #1e40af);
             }
-            QPushButton:pressed {
-                background-color: #1e40af;
+            QPushButton#signInBtn:pressed {
+                background: #1e3a8a;
             }
         """)
 
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(52)
+        shadow.setOffset(0, 14)
+        shadow.setColor(QColor(0, 0, 0, 90))
+        card.setGraphicsEffect(shadow)
 
-        # Header with title and subtitle
-        header_layout = QVBoxLayout()
-        header_layout.setSpacing(10)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(42, 42, 42, 42)
+        cl.setSpacing(0)
 
-        # Main title
-        title = QLabel("Julz Car AC Service")
-        title_font = QFont("Segoe UI", 24)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #1f2937; font-weight: 700;")
-        header_layout.addWidget(title)
+        hd = QLabel("Sign In")
+        hd.setStyleSheet("font-size:26px;font-weight:800;color:#111827;font-family:'Segoe UI',sans-serif;")
+        cl.addWidget(hd)
 
-        # Subtitle
-        subtitle = QLabel("Management System")
-        subtitle_font = QFont("Segoe UI", 14)
-        subtitle.setFont(subtitle_font)
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("color: #6b7280;")
-        header_layout.addWidget(subtitle)
+        hd_sub = QLabel("Enter your credentials to access the system")
+        hd_sub.setStyleSheet("font-size:12px;color:#6b7280;font-family:'Segoe UI',sans-serif;margin-top:4px;")
+        cl.addWidget(hd_sub)
+        cl.addSpacing(30)
 
-        # Divider
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet("background-color: #e5e7eb;")
-        header_layout.addWidget(divider)
+        def field_label(text):
+            lbl = QLabel(text)
+            lbl.setStyleSheet("font-size:12px;font-weight:600;color:#374151;font-family:'Segoe UI',sans-serif;margin-bottom:6px;")
+            return lbl
 
-        main_layout.addLayout(header_layout)
-
-        # Login section
-        login_label = QLabel("Sign In")
-        login_label_font = QFont("Segoe UI", 16)
-        login_label_font.setBold(True)
-        login_label.setFont(login_label_font)
-        login_label.setStyleSheet("color: #1f2937; margin-bottom: 15px;")
-        main_layout.addWidget(login_label)
-
-        # Username
-        username_label = QLabel("Username")
-        username_label.setStyleSheet("color: #374151; font-weight: 600; margin-top: 5px;")
-        main_layout.addWidget(username_label)
+        cl.addWidget(field_label("Username"))
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Enter your username")
-        self.username_input.setMinimumHeight(40)
-        main_layout.addWidget(self.username_input)
+        self.username_input.setMinimumHeight(44)
+        cl.addWidget(self.username_input)
+        cl.addSpacing(18)
 
-        # Password
-        password_label = QLabel("Password")
-        password_label.setStyleSheet("color: #374151; font-weight: 600; margin-top: 10px;")
-        main_layout.addWidget(password_label)
+        cl.addWidget(field_label("Password"))
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Enter your password")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setMinimumHeight(40)
-        main_layout.addWidget(self.password_input)
+        self.password_input.setMinimumHeight(44)
+        cl.addWidget(self.password_input)
+        cl.addSpacing(18)
 
-        # Role
-        role_label = QLabel("User Role")
-        role_label.setStyleSheet("color: #374151; font-weight: 600; margin-top: 10px;")
-        main_layout.addWidget(role_label)
+        cl.addWidget(field_label("User Role"))
         self.role_combo = QComboBox()
         self.role_combo.addItems(['Admin', 'Staff', 'Mechanic'])
-        self.role_combo.setMinimumHeight(40)
-        main_layout.addWidget(self.role_combo)
+        self.role_combo.setMinimumHeight(44)
+        cl.addWidget(self.role_combo)
+        cl.addSpacing(30)
 
-        # Login button
-        login_btn = QPushButton("Sign In")
-        login_btn.setMinimumHeight(45)
-        login_btn.setFont(QFont("Segoe UI", 13))
+        login_btn = QPushButton("Sign In  →")
+        login_btn.setObjectName("signInBtn")
+        login_btn.setMinimumHeight(50)
+        login_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         login_btn.clicked.connect(self.handle_login)
-        main_layout.addWidget(login_btn, 0, Qt.AlignmentFlag.AlignTop)
+        cl.addWidget(login_btn)
+        cl.addSpacing(26)
 
-        main_layout.addSpacing(20)
-
-        # Demo credentials info
-        info_frame = QFrame()
-        info_frame.setStyleSheet("""
+        # Demo box
+        demo_frame = QFrame()
+        demo_frame.setStyleSheet("""
             QFrame {
-                background-color: #dbeafe;
-                border: 1px solid #93c5fd;
-                border-radius: 6px;
-                padding: 12px;
+                background-color: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 10px;
             }
         """)
-        info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(15, 10, 15, 10)
+        dl = QVBoxLayout(demo_frame)
+        dl.setContentsMargins(16, 12, 16, 12)
+        dl.setSpacing(5)
 
-        demo_title = QLabel("Demo Credentials")
-        demo_title.setStyleSheet("color: #1e40af; font-weight: 600;")
-        info_layout.addWidget(demo_title)
+        demo_t = QLabel("🔑  Demo Credentials")
+        demo_t.setStyleSheet("color:#1e40af;font-weight:700;font-size:12px;font-family:'Segoe UI',sans-serif;")
+        dl.addWidget(demo_t)
 
-        demo_text = QLabel("Username: admin\nPassword: admin123\nRole: Admin")
-        demo_text.setStyleSheet("color: #1e3a8a; font-size: 11px; line-height: 20px;")
-        info_layout.addWidget(demo_text)
+        demo_v = QLabel("Username: admin   ·   Password: admin123   ·   Role: Admin")
+        demo_v.setStyleSheet("color:#1d4ed8;font-size:11px;font-family:'Consolas','Courier New',monospace;")
+        demo_v.setWordWrap(True)
+        dl.addWidget(demo_v)
 
-        main_layout.addWidget(info_frame)
-        main_layout.addStretch()
+        cl.addWidget(demo_frame)
+        cl.addStretch()
 
-        self.setLayout(main_layout)
+        center.addWidget(card, alignment=Qt.AlignmentFlag.AlignVCenter)
+        root_layout.addLayout(center, stretch=1)
+
+        # Footer
+        footer = QWidget()
+        footer.setFixedHeight(38)
+        footer.setStyleSheet("background:transparent;")
+        fl = QHBoxLayout(footer)
+        fl.setContentsMargins(0, 0, 0, 0)
+        ft = QLabel("Julz Car AC Service  ·  Secure Login Portal")
+        ft.setStyleSheet("color:rgba(255,255,255,0.2);font-size:11px;font-family:'Segoe UI',sans-serif;")
+        fl.addWidget(ft, alignment=Qt.AlignmentFlag.AlignCenter)
+        root_layout.addWidget(footer)
 
     def handle_login(self):
         """Handle login"""

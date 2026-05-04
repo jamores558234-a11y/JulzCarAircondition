@@ -1,8 +1,8 @@
 """Shared reusable UI widgets"""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
                              QListWidget, QListWidgetItem, QFrame, QLabel,
-                             QApplication)
-from PyQt6.QtCore import Qt, pyqtSignal
+                             QCompleter, QApplication)
+from PyQt6.QtCore import Qt, pyqtSignal, QStringListModel
 from PyQt6.QtGui import QFont
 
 
@@ -87,7 +87,6 @@ def btn_style(bg, hover, pressed=None):
     return SHARED_BTN_STYLE.format(bg=bg, hover=hover, pressed=pressed or hover)
 
 def section_label(text):
-    """Returns a styled section/form label"""
     lbl = QLabel(text)
     lbl.setStyleSheet("""
         font-size: 12px;
@@ -99,12 +98,12 @@ def section_label(text):
     return lbl
 
 
-# ── Searchable Combo Box ───────────────────────────────────────────────────────
+# ── Searchable Combo Box (QLineEdit + QCompleter) ──────────────────────────────
 
 class SearchableComboBox(QWidget):
     """
-    Drop-in replacement for QComboBox with built-in search/filter.
-    Popup is a separate top-level window — safe to create at any time.
+    Reliable searchable dropdown using QLineEdit + QCompleter.
+    Type to filter. Click a suggestion to select.
     Emits selection_changed(data_id: int, display_text: str).
     """
     selection_changed = pyqtSignal(int, str)
@@ -112,19 +111,18 @@ class SearchableComboBox(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._all_items = []   # list of (label_str, data_id)
+        self._label_to_id = {} # fast lookup: label -> data_id
         self._selected_id = None
         self._setup_ui()
 
     def _setup_ui(self):
         self.setFixedHeight(46)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        outer = QHBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
-
-        # Visible search input
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search customer…")
+        self.search_input.setPlaceholderText("Type to search customer…")
         self.search_input.setStyleSheet("""
             QLineEdit {
                 padding: 10px 14px;
@@ -140,107 +138,64 @@ class SearchableComboBox(QWidget):
                 background-color: #ffffff;
             }
         """)
-        self.search_input.textChanged.connect(self._on_text_changed)
-        self.search_input.installEventFilter(self)
-        outer.addWidget(self.search_input)
+        self.search_input.textEdited.connect(self._on_text_edited)
+        layout.addWidget(self.search_input)
 
-        # Popup — created as a true top-level popup window (no parent)
-        self._popup = QFrame(None, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        self._popup.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
+        # QCompleter for autocomplete suggestions
+        self._completer = QCompleter([])
+        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._completer.activated.connect(self._on_completer_activated)
+        self._completer.popup().setStyleSheet("""
+            QListView {
                 border: 1.5px solid #2563eb;
                 border-radius: 8px;
-            }
-        """)
-        pop_layout = QVBoxLayout(self._popup)
-        pop_layout.setContentsMargins(4, 4, 4, 4)
-        pop_layout.setSpacing(0)
-
-        self._list = QListWidget()
-        self._list.setStyleSheet("""
-            QListWidget {
-                border: none;
                 background: #ffffff;
                 font-size: 13px;
                 font-family: 'Segoe UI', sans-serif;
-                outline: none;
-            }
-            QListWidget::item {
-                padding: 9px 12px;
+                padding: 4px;
                 color: #111827;
-                border-radius: 5px;
-                margin: 1px 2px;
             }
-            QListWidget::item:hover {
+            QListView::item {
+                padding: 8px 12px;
+                border-radius: 5px;
+            }
+            QListView::item:hover {
                 background-color: #eff6ff;
                 color: #1d4ed8;
             }
-            QListWidget::item:selected {
+            QListView::item:selected {
                 background-color: #dbeafe;
                 color: #1e40af;
                 font-weight: 600;
             }
         """)
-        self._list.itemClicked.connect(self._on_item_selected)
-        pop_layout.addWidget(self._list)
-        self._popup.hide()
+        self.search_input.setCompleter(self._completer)
 
-    # ── Event filter: open popup on click or arrow key ─────────────────────────
-
-    def eventFilter(self, obj, event):
-        from PyQt6.QtCore import QEvent
-        if obj is self.search_input:
-            if event.type() == QEvent.Type.MouseButtonPress:
-                self._show_popup()
-                return False
-        return super().eventFilter(obj, event)
-
-    # ── Popup logic ────────────────────────────────────────────────────────────
-
-    def _on_text_changed(self, text):
+    def _on_text_edited(self, text):
+        """Clear selection when user manually types"""
         self._selected_id = None
-        self._filter_list(text)
-        if not self._popup.isVisible():
-            self._show_popup()
-        else:
-            self._resize_popup()
 
-    def _show_popup(self):
-        self._filter_list(self.search_input.text())
-        if self._list.count() == 0:
-            return
-        self._resize_popup()
-        self._popup.show()
-        self._popup.raise_()
-
-    def _resize_popup(self):
-        pos = self.search_input.mapToGlobal(self.search_input.rect().bottomLeft())
-        width = self.search_input.width()
-        height = min(240, self._list.count() * 38 + 12)
-        self._popup.setGeometry(pos.x(), pos.y() + 2, width, height)
-
-    def _filter_list(self, text):
-        self._list.clear()
-        kw = text.lower().strip()
-        for label, data_id in self._all_items:
-            if not kw or kw in label.lower():
-                item = QListWidgetItem(label)
-                item.setData(Qt.ItemDataRole.UserRole, data_id)
-                self._list.addItem(item)
-
-    def _on_item_selected(self, item):
-        self._selected_id = item.data(Qt.ItemDataRole.UserRole)
-        self.search_input.setText(item.text())
-        self._popup.hide()
-        self.selection_changed.emit(self._selected_id, item.text())
+    def _on_completer_activated(self, text):
+        """Called when user clicks or presses Enter on a suggestion"""
+        if text in self._label_to_id:
+            self._selected_id = self._label_to_id[text]
+            self.search_input.setText(text)
+            self.selection_changed.emit(self._selected_id, text)
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
     def populate(self, items):
-        """items: list of (label_str, data_id)"""
+        """
+        items: list of (label_str, data_id)
+        Rebuilds the completer and lookup map.
+        """
         self._all_items = items
-        self._filter_list('')
+        self._label_to_id = {label: data_id for label, data_id in items}
+        labels = [label for label, _ in items]
+        model = QStringListModel(labels)
+        self._completer.setModel(model)
 
     def set_selection_by_id(self, data_id):
         for label, did in self._all_items:
@@ -250,7 +205,14 @@ class SearchableComboBox(QWidget):
                 return
 
     def current_data(self):
-        return self._selected_id
+        """
+        Returns the selected data_id.
+        Also validates that the typed text matches a real entry.
+        """
+        text = self.search_input.text().strip()
+        if text in self._label_to_id:
+            return self._label_to_id[text]
+        return None
 
     def clear_selection(self):
         self._selected_id = None

@@ -190,6 +190,10 @@ class DashboardWindow(QMainWindow):
         # Connect all data_changed signals to refresh_stats
         self.customer_window.data_changed.connect(self.refresh_stats)
         self.vehicle_window.data_changed.connect(self.refresh_stats)
+
+        # When a customer is added/updated/deleted, reload vehicle combo instantly
+        self.customer_window.data_changed.connect(
+            self.vehicle_window._reload_customer_combo)
         self.service_window.data_changed.connect(self.refresh_stats)
         self.inventory_window.data_changed.connect(self.refresh_stats)
         self.billing_window.data_changed.connect(self.refresh_stats)

@@ -19,10 +19,32 @@ class VehicleWindow(QWidget):
         self.customer_controller = CustomerController()
         self._selected_vehicle_id = None
         self.init_ui()
+        self.refresh_all()
+
+    # ── Called every time this tab becomes visible ─────────────────────────────
+    def showEvent(self, event):
+        """Reload customers into combo every time this window is shown"""
+        super().showEvent(event)
+        self._reload_customer_combo()
+
+    def refresh_all(self):
+        self._reload_customer_combo()
+        self.load_vehicles()
+
+    def _reload_customer_combo(self):
+        """Always fetch fresh customer list from DB"""
         try:
-            self.load_vehicles()
+            customers = self.customer_controller.get_all_customers()
+            items = []
+            for c in customers:
+                mid = (' ' + c['middle_name']) if c.get('middle_name') else ''
+                label = f"{c['last_name']}, {c['first_name']}{mid}"
+                items.append((label, c['customer_id']))
+            self.customer_combo.populate(items)
         except Exception as e:
-            print(f"Error loading vehicles: {e}")
+            print(f"Error loading customers into combo: {e}")
+
+    # ── UI Setup ───────────────────────────────────────────────────────────────
 
     def init_ui(self):
         self.setStyleSheet("background-color:#f8fafc;font-family:'Segoe UI',sans-serif;")
@@ -86,14 +108,12 @@ class VehicleWindow(QWidget):
         hdr.setStyleSheet("color:#1f2937;font-size:14px;font-weight:700;font-family:'Segoe UI',sans-serif;")
         fl.addWidget(hdr)
 
-        fl.addWidget(section_label("Customer *"))
+        # Customer searchable combo
+        fl.addWidget(section_label("Customer *  (type to search)"))
         self.customer_combo = SearchableComboBox()
         fl.addWidget(self.customer_combo)
-        try:
-            self._load_customers_combo()
-        except Exception as e:
-            print(f"Error loading customers: {e}")
 
+        # Row 1: Plate | Model | Type
         row1 = QHBoxLayout()
         row1.setSpacing(14)
 
@@ -126,6 +146,7 @@ class VehicleWindow(QWidget):
 
         fl.addLayout(row1)
 
+        # Row 2: Year | Color
         row2 = QHBoxLayout()
         row2.setSpacing(14)
 
@@ -183,7 +204,7 @@ class VehicleWindow(QWidget):
         refresh_btn.setStyleSheet(btn_style("#8b5cf6", "#7c3aed"))
         refresh_btn.setMinimumHeight(44)
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        refresh_btn.clicked.connect(self._clear_search)
+        refresh_btn.clicked.connect(self.refresh_all)
         row.addWidget(refresh_btn)
 
         clear_btn = QPushButton("✖  Clear Form")
@@ -217,7 +238,8 @@ class VehicleWindow(QWidget):
         self.table.setColumnHidden(0, True)
         self.table.setColumnHidden(7, True)
         self.table.clicked.connect(self.on_row_clicked)
-        self.table.setStyleSheet(SHARED_TABLE_STYLE + "QTableWidget{alternate-background-color:#fafafa;}")
+        self.table.setStyleSheet(
+            SHARED_TABLE_STYLE + "QTableWidget{alternate-background-color:#fafafa;}")
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -227,21 +249,14 @@ class VehicleWindow(QWidget):
 
         return frame
 
-    def _load_customers_combo(self):
-        customers = self.customer_controller.get_all_customers()
-        items = []
-        for c in customers:
-            label = f"{c['last_name']}, {c['first_name']}{' ' + c['middle_name'] if c.get('middle_name') else ''}"
-            items.append((label, c['customer_id']))
-        self.customer_combo.populate(items)
+    # ── Data ──────────────────────────────────────────────────────────────────
 
-    def load_vehicles(self, vehicles=None):
-        if vehicles is None:
-            try:
-                vehicles = self.vehicle_controller.get_all_vehicles() or []
-            except Exception as e:
-                QMessageBox.warning(self, "Error", f"Failed to load vehicles: {e}")
-                return
+    def load_vehicles(self):
+        try:
+            vehicles = self.vehicle_controller.get_all_vehicles() or []
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to load vehicles: {e}")
+            return
 
         self.table.setRowCount(len(vehicles))
         for row, v in enumerate(vehicles):
@@ -258,7 +273,8 @@ class VehicleWindow(QWidget):
         kw = text.lower().strip()
         for row in range(self.table.rowCount()):
             match = any(
-                kw in (self.table.item(row, col).text().lower() if self.table.item(row, col) else '')
+                kw in (self.table.item(row, col).text().lower()
+                       if self.table.item(row, col) else '')
                 for col in range(1, 7)
             )
             self.table.setRowHidden(row, not match if kw else False)
@@ -266,15 +282,11 @@ class VehicleWindow(QWidget):
 
     def _clear_search(self):
         self.search_input.clear()
-        self.load_vehicles()
-        self._refresh_combo()
+        for row in range(self.table.rowCount()):
+            self.table.setRowHidden(row, False)
         self._reset_selection()
 
-    def _refresh_combo(self):
-        try:
-            self._load_customers_combo()
-        except Exception:
-            pass
+    # ── Row click ─────────────────────────────────────────────────────────────
 
     def on_row_clicked(self):
         row = self.table.currentRow()
@@ -282,6 +294,7 @@ class VehicleWindow(QWidget):
             return
         self._selected_vehicle_id = int(self.table.item(row, 0).text())
         customer_id = int(self.table.item(row, 7).text())
+
         self.customer_combo.set_selection_by_id(customer_id)
         self.plate_input.setText(self.table.item(row, 2).text())
         self.model_input.setText(self.table.item(row, 3).text())
@@ -319,29 +332,37 @@ class VehicleWindow(QWidget):
         self._reset_selection()
         self.table.clearSelection()
 
+    # ── CRUD ──────────────────────────────────────────────────────────────────
+
     def add_vehicle(self):
         try:
             customer_id = self.customer_combo.current_data()
             if not customer_id:
-                QMessageBox.warning(self, "Validation Error", "Please select a customer.")
+                QMessageBox.warning(self, "Validation Error",
+                    "Please select a valid customer from the dropdown.")
                 return
             plate = self.plate_input.text().strip()
             model = self.model_input.text().strip()
             type_val = self.type_input.text().strip()
             year = self.year_input.text().strip()
             color = self.color_input.text().strip()
+
             if not validate_not_empty(plate, model, type_val):
-                QMessageBox.warning(self, "Validation Error", "Plate, model, and type are required.")
+                QMessageBox.warning(self, "Validation Error",
+                    "Plate number, model, and type are required.")
                 return
             try:
                 year = int(year) if year else None
             except ValueError:
                 QMessageBox.warning(self, "Error", "Year must be a number.")
                 return
-            if self.vehicle_controller.add_vehicle(customer_id, plate, model, type_val, year, color):
+
+            if self.vehicle_controller.add_vehicle(
+                    customer_id, plate, model, type_val, year, color):
                 QMessageBox.information(self, "Success", "Vehicle added successfully.")
                 self._reset_form()
                 self.load_vehicles()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Failed to add vehicle.")
         except Exception as e:
@@ -349,27 +370,37 @@ class VehicleWindow(QWidget):
 
     def update_vehicle(self):
         if not self._selected_vehicle_id:
-            QMessageBox.warning(self, "Selection Error", "Please search and select a vehicle first.")
+            QMessageBox.warning(self, "Selection Error",
+                "Please select a vehicle from the table first.")
             return
         try:
             customer_id = self.customer_combo.current_data()
+            if not customer_id:
+                QMessageBox.warning(self, "Validation Error",
+                    "Please select a valid customer from the dropdown.")
+                return
             plate = self.plate_input.text().strip()
             model = self.model_input.text().strip()
             type_val = self.type_input.text().strip()
             year = self.year_input.text().strip()
             color = self.color_input.text().strip()
+
             if not validate_not_empty(plate, model, type_val):
-                QMessageBox.warning(self, "Validation Error", "Plate, model, and type are required.")
+                QMessageBox.warning(self, "Validation Error",
+                    "Plate number, model, and type are required.")
                 return
             try:
                 year = int(year) if year else None
             except ValueError:
                 QMessageBox.warning(self, "Error", "Year must be a number.")
                 return
-            if self.vehicle_controller.update_vehicle(self._selected_vehicle_id, customer_id, plate, model, type_val, year, color):
+
+            if self.vehicle_controller.update_vehicle(
+                    self._selected_vehicle_id, customer_id, plate, model, type_val, year, color):
                 QMessageBox.information(self, "Success", "Vehicle updated successfully.")
                 self._reset_form()
                 self.load_vehicles()
+                self.data_changed.emit()
             else:
                 QMessageBox.warning(self, "Error", "Failed to update vehicle.")
         except Exception as e:
@@ -378,7 +409,7 @@ class VehicleWindow(QWidget):
     def delete_vehicle(self):
         if not self._selected_vehicle_id:
             QMessageBox.warning(self, "Selection Error",
-                "You must search and select a vehicle record before deleting.")
+                "You must select a vehicle from the table before deleting.")
             return
 
         row = self.table.currentRow()
@@ -388,7 +419,8 @@ class VehicleWindow(QWidget):
         reply = QMessageBox.question(
             self,
             "Confirm Delete",
-            f"Are you sure you want to permanently delete:\n\n  {plate} — {model}\n\n"
+            f"Are you sure you want to permanently delete:\n\n"
+            f"  {plate} — {model}\n\n"
             "This will also remove all associated service records.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No

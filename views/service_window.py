@@ -1,12 +1,12 @@
-"""Service management window - Updated for role-based access"""
+"""Service management window"""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-                             QLineEdit, QTableWidget, QTableWidgetItem, QMessageBox,
-                             QComboBox, QTextEdit, QFrame, QHeaderView)
+                             QTableWidget, QTableWidgetItem, QMessageBox, QComboBox,
+                             QTextEdit, QFrame, QHeaderView)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
 from controllers.service_controller import ServiceController
 from controllers.vehicle_controller import VehicleController
 from database.connection import DatabaseConnection
+from views.widgets import SHARED_INPUT_STYLE, SHARED_TABLE_STYLE, btn_style, section_label
 
 
 class ServiceWindow(QWidget):
@@ -20,6 +20,7 @@ class ServiceWindow(QWidget):
         self.service_controller = ServiceController()
         self.vehicle_controller = VehicleController()
         self.db = DatabaseConnection()
+        self._selected_service_id = None
         self.init_ui()
         try:
             self.load_services()
@@ -27,344 +28,246 @@ class ServiceWindow(QWidget):
             print(f"Error loading services: {e}")
 
     def init_ui(self):
-        """Initialize service UI"""
-        layout = QVBoxLayout()
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(25)
-        self.setStyleSheet("background-color: #f8fafc;")
+        self.setStyleSheet("background:#f8fafc;font-family:'Segoe UI',sans-serif;")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(20)
 
-        # Title section
-        title_frame = QFrame()
-        title_frame.setStyleSheet("""
-            QFrame {
-                background-color: #ffffff;
-                border-bottom: 2px solid #e2e8f0;
-                padding: 15px 0px;
-            }
-        """)
-        title_layout = QVBoxLayout(title_frame)
-        title_layout.setContentsMargins(15, 10, 15, 10)
+        # Header
+        hf = QFrame()
+        hf.setStyleSheet("QFrame{background:#fff;border-bottom:2px solid #e2e8f0;}")
+        hl = QVBoxLayout(hf)
+        hl.setContentsMargins(16, 12, 16, 12)
+        title_text = "🔧  My Services" if self.user_role == 'Mechanic' else "🔧  Service Management"
+        t = QLabel(title_text)
+        t.setStyleSheet("color:#1f2937;font-size:24px;font-weight:700;font-family:'Segoe UI',sans-serif;")
+        hl.addWidget(t)
+        sub = QLabel("Create and manage vehicle service records")
+        sub.setStyleSheet("color:#6b7280;font-size:12px;font-family:'Segoe UI',sans-serif;margin-top:2px;")
+        hl.addWidget(sub)
+        layout.addWidget(hf)
 
-        title_text = "🔧 My Services" if self.user_role == 'Mechanic' else "🔧 Service Management"
-        title = QLabel(title_text)
-        title.setStyleSheet("color: #1f2937; font-size: 26px; font-weight: 700;")
-        title_layout.addWidget(title)
-
-        layout.addWidget(title_frame)
-
-        # Form section - Only show for non-mechanics
+        # Form (only for non-mechanics)
         if self.user_role != 'Mechanic':
-            form_frame = QFrame()
-            form_frame.setStyleSheet("""
-                QFrame {
-                    background-color: #ffffff;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
-                    padding: 20px;
-                }
-            """)
-            form_layout = QVBoxLayout(form_frame)
+            ff = QFrame()
+            ff.setStyleSheet("QFrame{background:#fff;border:1px solid #e5e7eb;border-radius:10px;}")
+            fl = QVBoxLayout(ff)
+            fl.setContentsMargins(20, 16, 20, 16)
+            fl.setSpacing(14)
 
-            form_title = QLabel("Service Details")
-            form_title.setStyleSheet("color: #374151; font-size: 15px; font-weight: 600; margin-bottom: 10px;")
-            form_layout.addWidget(form_title)
+            fhdr = QLabel("Service Details")
+            fhdr.setStyleSheet("color:#1f2937;font-size:14px;font-weight:700;font-family:'Segoe UI',sans-serif;")
+            fl.addWidget(fhdr)
 
-            # Form Row 1
-            form_row1 = QHBoxLayout()
+            row1 = QHBoxLayout()
+            row1.setSpacing(14)
 
-            form_row1.addWidget(QLabel("Vehicle:"))
+            vc = QVBoxLayout()
+            vc.addWidget(section_label("Vehicle *"))
             self.vehicle_combo = QComboBox()
-            self.vehicle_combo.setStyleSheet(self.get_input_style())
+            self.vehicle_combo.setStyleSheet(SHARED_INPUT_STYLE.replace("QLineEdit","QComboBox"))
             self.vehicle_combo.setMinimumHeight(42)
-            try:
-                self.load_vehicles_combo()
-            except:
-                pass
-            form_row1.addWidget(self.vehicle_combo)
+            try: self.load_vehicles_combo()
+            except: pass
+            vc.addWidget(self.vehicle_combo)
+            row1.addLayout(vc)
 
-            form_row1.addWidget(QLabel("Mechanic:"))
+            mc = QVBoxLayout()
+            mc.addWidget(section_label("Mechanic"))
             self.mechanic_combo = QComboBox()
-            self.mechanic_combo.setStyleSheet(self.get_input_style())
+            self.mechanic_combo.setStyleSheet(SHARED_INPUT_STYLE.replace("QLineEdit","QComboBox"))
             self.mechanic_combo.setMinimumHeight(42)
-            try:
-                self.load_mechanics_combo()
-            except:
-                pass
-            form_row1.addWidget(self.mechanic_combo)
+            try: self.load_mechanics_combo()
+            except: pass
+            mc.addWidget(self.mechanic_combo)
+            row1.addLayout(mc)
 
-            form_row1.addWidget(QLabel("Status:"))
+            sc = QVBoxLayout()
+            sc.addWidget(section_label("Status"))
             self.status_combo = QComboBox()
-            self.status_combo.addItems(['Pending', 'Ongoing', 'Completed'])
-            self.status_combo.setStyleSheet(self.get_input_style())
+            self.status_combo.addItems(['Pending','Ongoing','Completed'])
+            self.status_combo.setStyleSheet(SHARED_INPUT_STYLE.replace("QLineEdit","QComboBox"))
             self.status_combo.setMinimumHeight(42)
-            form_row1.addWidget(self.status_combo)
+            sc.addWidget(self.status_combo)
+            row1.addLayout(sc)
 
-            form_row1.addStretch()
-            form_layout.addLayout(form_row1)
+            fl.addLayout(row1)
 
-            # Issue complaint
-            issue_label = QLabel("Issue/Complaint:")
-            issue_label.setStyleSheet("color: #374151; font-weight: 600; font-size: 12px; margin-top: 10px;")
-            form_layout.addWidget(issue_label)
+            fl.addWidget(section_label("Issue / Complaint *"))
             self.issue_input = QTextEdit()
             self.issue_input.setMaximumHeight(80)
-            self.issue_input.setStyleSheet(self.get_input_style())
-            form_layout.addWidget(self.issue_input)
+            self.issue_input.setStyleSheet("""
+                QTextEdit {
+                    padding: 10px 14px;
+                    border: 1.5px solid #d1d5db;
+                    border-radius: 8px;
+                    font-size: 13px;
+                    background:#f9fafb;
+                    color:#111827;
+                    font-family:'Segoe UI',sans-serif;
+                }
+                QTextEdit:focus { border:1.5px solid #2563eb; background:#fff; }
+            """)
+            fl.addWidget(self.issue_input)
+            layout.addWidget(ff)
 
-            layout.addWidget(form_frame)
-
-        # Buttons section
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        # Buttons
+        br = QHBoxLayout()
+        br.setSpacing(10)
 
         if self.user_role != 'Mechanic':
-            create_btn = QPushButton("➕ Create Service")
-            create_btn.setStyleSheet(self.get_button_style("#10b981", "#059669"))
-            create_btn.setMinimumHeight(44)
-            create_btn.clicked.connect(self.create_service)
-            button_layout.addWidget(create_btn)
+            cb = QPushButton("➕  Create Service")
+            cb.setStyleSheet(btn_style("#10b981","#059669","#047857"))
+            cb.setMinimumHeight(44)
+            cb.setCursor(Qt.CursorShape.PointingHandCursor)
+            cb.clicked.connect(self.create_service)
+            br.addWidget(cb)
 
-        update_status_btn = QPushButton("✏️ Update Status")
-        update_status_btn.setStyleSheet(self.get_button_style("#3b82f6", "#2563eb"))
-        update_status_btn.setMinimumHeight(44)
-        update_status_btn.clicked.connect(self.update_status)
-        button_layout.addWidget(update_status_btn)
+        ub = QPushButton("✏️  Update Status")
+        ub.setStyleSheet(btn_style("#3b82f6","#2563eb","#1d4ed8"))
+        ub.setMinimumHeight(44)
+        ub.setCursor(Qt.CursorShape.PointingHandCursor)
+        ub.clicked.connect(self.update_status)
+        br.addWidget(ub)
 
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.setStyleSheet(self.get_button_style("#8b5cf6", "#7c3aed"))
-        refresh_btn.setMinimumHeight(44)
-        refresh_btn.clicked.connect(self.load_services)
-        button_layout.addWidget(refresh_btn)
+        rb = QPushButton("🔄  Refresh")
+        rb.setStyleSheet(btn_style("#8b5cf6","#7c3aed"))
+        rb.setMinimumHeight(44)
+        rb.setCursor(Qt.CursorShape.PointingHandCursor)
+        rb.clicked.connect(self.load_services)
+        br.addWidget(rb)
 
-        button_layout.addStretch()
-        layout.addLayout(button_layout)
+        br.addStretch()
 
-        # Table section
-        table_frame = QFrame()
-        table_frame.setStyleSheet("""
-            QFrame {
-                background-color: #ffffff;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-            }
-        """)
-        table_layout = QVBoxLayout(table_frame)
-        table_layout.setContentsMargins(0, 0, 0, 0)
+        self.selection_lbl = QLabel("No record selected")
+        self.selection_lbl.setStyleSheet("color:#6b7280;font-size:12px;background:#f3f4f6;border-radius:6px;padding:6px 12px;font-family:'Segoe UI',sans-serif;")
+        br.addWidget(self.selection_lbl)
+
+        layout.addLayout(br)
+
+        # Table
+        tf = QFrame()
+        tf.setStyleSheet("QFrame{background:#fff;border:1px solid #e5e7eb;border-radius:10px;}")
+        tl = QVBoxLayout(tf)
+        tl.setContentsMargins(0, 0, 0, 0)
 
         self.table = QTableWidget()
         self.table.setColumnCount(8)
-        self.table.setHorizontalHeaderLabels(
-            ['ID', 'Vehicle', 'Customer', 'Mechanic', 'Issue', 'Status', 'Created', 'Vehicle ID'])
+        self.table.setHorizontalHeaderLabels(['ID','Vehicle','Customer','Mechanic','Issue','Status','Created','VehicleID'])
+        self.table.setColumnHidden(0, True)
         self.table.setColumnHidden(7, True)
         self.table.clicked.connect(self.on_row_clicked)
-        self.table.setStyleSheet(self.get_table_style())
+        self.table.setStyleSheet(SHARED_TABLE_STYLE + "QTableWidget{alternate-background-color:#fafafa;}")
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        table_layout.addWidget(self.table)
-
-        layout.addWidget(table_frame)
-        self.setLayout(layout)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setAlternatingRowColors(True)
+        tl.addWidget(self.table)
+        layout.addWidget(tf)
 
     def load_vehicles_combo(self):
-        """Load vehicles in combo"""
-        try:
-            vehicles = self.vehicle_controller.get_all_vehicles()
-            if vehicles:
-                for vehicle in vehicles:
-                    self.vehicle_combo.addItem(
-                        f"{vehicle.get('plate_number', '')} - {vehicle.get('model', '')}",
-                        vehicle.get('vehicle_id')
-                    )
-        except Exception as e:
-            print(f"Error loading vehicles: {e}")
+        vehicles = self.vehicle_controller.get_all_vehicles()
+        if vehicles:
+            for v in vehicles:
+                self.vehicle_combo.addItem(f"{v.get('plate_number','')} — {v.get('model','')}", v.get('vehicle_id'))
 
     def load_mechanics_combo(self):
-        """Load mechanics in combo"""
-        try:
-            query = "SELECT user_id, full_name FROM users WHERE role = 'Mechanic'"
-            mechanics = self.db.execute_query(query)
-            if mechanics:
-                for mechanic in mechanics:
-                    self.mechanic_combo.addItem(mechanic.get('full_name', ''), mechanic.get('user_id'))
-        except Exception as e:
-            print(f"Error loading mechanics: {e}")
+        mechanics = self.db.execute_query("SELECT user_id, full_name FROM users WHERE role = 'Mechanic'")
+        if mechanics:
+            for m in mechanics:
+                self.mechanic_combo.addItem(m.get('full_name',''), m.get('user_id'))
 
     def load_services(self):
-        """Load services from database"""
         try:
             if self.user_role == 'Mechanic':
-                # Mechanics only see their own services
                 query = """
-                SELECT s.*, v.plate_number, v.model, c.name as customer_name, u.full_name as mechanic_name 
+                SELECT s.*, v.plate_number, v.model,
+                CONCAT(c.first_name,' ',IFNULL(c.middle_name,''),' ',c.last_name) as customer_name,
+                u.full_name as mechanic_name
                 FROM services s
                 JOIN vehicles v ON s.vehicle_id = v.vehicle_id
                 JOIN customers c ON v.customer_id = c.customer_id
                 LEFT JOIN users u ON s.mechanic_id = u.user_id
-                WHERE s.mechanic_id = %s
-                ORDER BY s.created_at DESC
+                WHERE s.mechanic_id = %s ORDER BY s.created_at DESC
                 """
                 services = self.db.execute_query(query, (self.user_id,))
             else:
-                # Admins and staff see all services
                 services = self.service_controller.get_all_services()
 
-            if services is None:
-                services = []
-
+            services = services or []
             self.table.setRowCount(len(services))
 
-            for row, service in enumerate(services):
-                try:
-                    self.table.setItem(row, 0, QTableWidgetItem(str(service.get('service_id', ''))))
-                    plate = service.get('plate_number', 'N/A')
-                    model = service.get('model', 'N/A')
-                    self.table.setItem(row, 1, QTableWidgetItem(f"{plate} - {model}"))
-                    self.table.setItem(row, 2, QTableWidgetItem(service.get('customer_name', '')))
-                    self.table.setItem(row, 3, QTableWidgetItem(service.get('mechanic_name', 'Unassigned')))
-                    issue = service.get('issue_complaint', '')[:50]
-                    self.table.setItem(row, 4, QTableWidgetItem(issue))
-                    self.table.setItem(row, 5, QTableWidgetItem(service.get('status', '')))
-                    self.table.setItem(row, 6, QTableWidgetItem(str(service.get('created_at', ''))))
-                    self.table.setItem(row, 7, QTableWidgetItem(str(service.get('vehicle_id', ''))))
-                except Exception as e:
-                    print(f"Error loading row {row}: {e}")
+            status_colors = {"Pending":"#fef3c7","Ongoing":"#dbeafe","Completed":"#d1fae5"}
+
+            for row, s in enumerate(services):
+                self.table.setItem(row,0,QTableWidgetItem(str(s.get('service_id',''))))
+                self.table.setItem(row,1,QTableWidgetItem(f"{s.get('plate_number','')} — {s.get('model','')}"))
+                self.table.setItem(row,2,QTableWidgetItem(s.get('customer_name','')))
+                self.table.setItem(row,3,QTableWidgetItem(s.get('mechanic_name','Unassigned')))
+                self.table.setItem(row,4,QTableWidgetItem((s.get('issue_complaint','') or '')[:60]))
+                status = s.get('status','')
+                si = QTableWidgetItem(status)
+                self.table.setItem(row,5,si)
+                self.table.setItem(row,6,QTableWidgetItem(str(s.get('created_at',''))[:16]))
+                self.table.setItem(row,7,QTableWidgetItem(str(s.get('vehicle_id',''))))
         except Exception as e:
             print(f"Error loading services: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to load services: {str(e)}")
+
+    def on_row_clicked(self):
+        row = self.table.currentRow()
+        if row < 0: return
+        self._selected_service_id = int(self.table.item(row, 0).text())
+        status = self.table.item(row, 5).text()
+        vehicle_plate = self.table.item(row, 1).text()
+        if self.user_role != 'Mechanic':
+            vid = int(self.table.item(row, 7).text())
+            self.vehicle_combo.setCurrentIndex(self.vehicle_combo.findData(vid))
+            self.status_combo.setCurrentText(status)
+        self.selection_lbl.setText(f"Selected: {vehicle_plate}  ·  {status}")
+        self.selection_lbl.setStyleSheet("color:#1d4ed8;font-size:12px;background:#dbeafe;border-radius:6px;padding:6px 12px;font-weight:600;font-family:'Segoe UI',sans-serif;")
 
     def create_service(self):
-        """Create new service"""
         try:
             vehicle_id = self.vehicle_combo.currentData()
             if not vehicle_id:
-                QMessageBox.warning(self, "Error", "Please select a vehicle")
+                QMessageBox.warning(self,"Validation Error","Please select a vehicle.")
                 return
-
             mechanic_id = self.mechanic_combo.currentData()
             issue = self.issue_input.toPlainText().strip()
-
             if not issue:
-                QMessageBox.warning(self, "Error", "Please enter issue complaint")
+                QMessageBox.warning(self,"Validation Error","Please enter the issue or complaint.")
                 return
-
             if self.service_controller.create_service(vehicle_id, mechanic_id, issue):
-                QMessageBox.information(self, "Success", "Service created successfully")
+                QMessageBox.information(self,"Success","Service created successfully.")
                 self.issue_input.clear()
                 self.load_services()
                 self.data_changed.emit()
             else:
-                QMessageBox.warning(self, "Error", "Failed to create service")
+                QMessageBox.warning(self,"Error","Failed to create service.")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred: {str(e)}")
-
-    def on_row_clicked(self):
-        """Load selected service to form"""
-        try:
-            row = self.table.currentRow()
-            if row >= 0 and self.user_role != 'Mechanic':
-                vehicle_id = int(self.table.item(row, 7).text())
-                status = self.table.item(row, 5).text()
-
-                self.vehicle_combo.setCurrentIndex(self.vehicle_combo.findData(vehicle_id))
-                self.status_combo.setCurrentText(status)
-        except Exception as e:
-            print(f"Error on row clicked: {e}")
+            QMessageBox.critical(self,"Error",str(e))
 
     def update_status(self):
-        """Update service status"""
         try:
             row = self.table.currentRow()
             if row < 0:
-                QMessageBox.warning(self, "Selection Error", "Please select a service")
+                QMessageBox.warning(self,"Selection Error","Please select a service from the table first.")
                 return
-
             service_id = int(self.table.item(row, 0).text())
-
-            # For mechanics, limit status changes
             if self.user_role == 'Mechanic':
-                current_status = self.table.item(row, 5).text()
-                if current_status == 'Pending':
-                    new_status = 'Ongoing'
-                elif current_status == 'Ongoing':
-                    new_status = 'Completed'
-                else:
-                    QMessageBox.warning(self, "Error", "Service is already completed")
+                current = self.table.item(row, 5).text()
+                new_status = {'Pending':'Ongoing','Ongoing':'Completed'}.get(current)
+                if not new_status:
+                    QMessageBox.warning(self,"Error","Service is already completed.")
                     return
             else:
                 new_status = self.status_combo.currentText()
-
             if self.service_controller.update_service_status(service_id, new_status):
-                QMessageBox.information(self, "Success", "Service status updated successfully")
+                QMessageBox.information(self,"Success","Status updated successfully.")
                 self.load_services()
                 self.data_changed.emit()
             else:
-                QMessageBox.warning(self, "Error", "Cannot update status. Check workflow order.")
+                QMessageBox.warning(self,"Error","Failed to update status.")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred: {str(e)}")
-
-    @staticmethod
-    def get_input_style():
-        return """
-            QLineEdit, QComboBox, QTextEdit {
-                padding: 10px 12px;
-                border: 2px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 13px;
-                background-color: #ffffff;
-                color: #1f2937;
-            }
-            QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
-                border: 2px solid #3b82f6;
-                background-color: #ffffff;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #ffffff;
-                color: #1f2937;
-                selection-background-color: #dbeafe;
-                selection-color: #1e40af;
-                border: 1px solid #d1d5db;
-            }
-        """
-
-    @staticmethod
-    def get_button_style(bg_color, hover_color):
-        return f"""
-            QPushButton {{
-                background-color: {bg_color};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: 600;
-                font-size: 13px;
-                padding: 10px 20px;
-            }}
-            QPushButton:hover {{
-                background-color: {hover_color};
-            }}
-        """
-
-    @staticmethod
-    def get_table_style():
-        return """
-            QTableWidget {
-                border: none;
-                background-color: #ffffff;
-                gridline-color: #e5e7eb;
-            }
-            QTableWidget::item {
-                padding: 14px;
-                color: #1f2937;
-            }
-            QHeaderView::section {
-                background-color: #f3f4f6;
-                color: #374151;
-                padding: 14px;
-                border: none;
-                border-bottom: 2px solid #e5e7eb;
-                font-weight: 600;
-                font-size: 13px;
-            }
-            QTableWidget::item:selected {
-                background-color: #dbeafe;
-                color: #1f2937;
-            }
-        """
+            QMessageBox.critical(self,"Error",str(e))
